@@ -1,7 +1,10 @@
 plugins {
     id 'java'
+    id 'scala'
     id 'maven-publish'
     id "com.adtran.scala-multiversion-plugin" version "1.0.35"
+    id "com.github.maiflai.scalatest" version "0.25"
+    id "com.google.protobuf" version "0.8.11"
 }
 
 repositories {
@@ -11,24 +14,72 @@ repositories {
     }
 }
 
+ext {
+  scalapbVersion = '0.9.6'
+  sparkVersion = '2.4.4'
+}
+
 dependencies {
     compile 'com.typesafe:config:1.2.1'
-    compile 'org.apache.spark:spark-core_%%:2.4.4'
-    compile 'org.apache.spark:spark-hive_%%:2.4.4'
-    compile 'org.apache.spark:spark-sql_%%:2.4.4'
-    // compile 'org.apache.maven:maven-core:3.3.9'
+    compile "org.apache.spark:spark-core_%%:${sparkVersion}"
+    compile "org.apache.spark:spark-hive_%%:${sparkVersion}"
+    compile "org.apache.spark:spark-sql_%%:${sparkVersion}"
     compile 'com.thesamet.scalapb:scalapb-runtime_%%:0.9.6'
     compile 'com.thesamet.scalapb:scalapb-json4s_%%:0.10.0'
     compile 'org.tensorflow:spark-tensorflow-connector_%%:1.15.0'
     compile 'org.tensorflow:tensorflow:1.8.0'
-    testCompile 'org.mockito:mockito-core:1.10.19'
-    testCompile 'org.scalatest:scalatest_%%:3.0.0'
+
+    testCompile 'org.scalatest:scalatest_%%:3.1.1'
+    testRuntime 'org.pegdown:pegdown:1.6.0'
+    // https://github.com/scalatest/scalatest/issues/1736, Document flexmark dependency for test reports
+    testRuntimeOnly 'com.vladsch.flexmark:flexmark-all:0.35.10'
 }
 
 group = 'feacets-overview-spark'
 version = '0.1.0-SNAPSHOT'
 description = 'facets-overview-spark'
 sourceCompatibility = '1.8'
+
+protobuf {
+  protoc {
+    artifact = 'com.google.protobuf:protoc:3.11.4'
+  }
+
+  plugins {
+    scalapb {
+      artifact = (org.gradle.nativeplatform.platform.internal.DefaultNativePlatform.getCurrentOperatingSystem().isWindows()) ?
+          "com.thesamet.scalapb:protoc-gen-scala:${scalapbVersion}:windows@bat" :
+          "com.thesamet.scalapb:protoc-gen-scala:${scalapbVersion}:unix@sh"
+    }
+  }
+
+  generateProtoTasks {
+    all().each { task ->
+      task.builtins {
+          // if you don't want java code to be generated.
+          remove java
+      }
+      task.plugins {
+          scalapb {
+            // add any ScalaPB generator options here. See: https://scalapb.github.io/scalapbc.html#passing-generator-parameters
+            // option 'flat_package'
+          }
+      }
+    }
+  }
+}
+
+// Add geneated Scala code as a source directory
+sourceSets {
+  main {
+    proto {
+      srcDir 'src/main/protobuf'
+    }
+    scala {
+        srcDirs "${protobuf.generatedFilesBaseDir}/main/scalapb"
+    }
+  }
+}
 
 publishing {
     publications {
