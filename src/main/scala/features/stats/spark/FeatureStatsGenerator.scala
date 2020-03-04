@@ -115,7 +115,7 @@ object FeatureStatsGenerator {
   }
   private[features]  def checkZeroNanInfiniteFun(x : AnyVal) : NonZeroInfinite = {
 
-    val value = x.toString.toDouble
+    val value = try { x.toString.toDouble } catch { case e: NullPointerException => Float.NaN }
 
     val (isNan, isPosInfi, isNegInfi, isZero) = {
       if (value.isNaN) {
