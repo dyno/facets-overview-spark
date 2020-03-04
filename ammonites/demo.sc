@@ -27,7 +27,9 @@ Logger.getLogger("org").setLevel(Level.OFF)
 // Utility Functions
 
 //  ln -sf build/libs/facets-overview-spark_2.11-0.1.0-SNAPSHOT.jar ./
-import $cp.`facets-overview-spark_2.11-0.1.0-SNAPSHOT.jar`
+// import $cp.`facets-overview-spark_2.11-0.1.0-SNAPSHOT.jar`
+val jarPath = pwd/up/RelPath("build/libs/facets-overview-spark_2.11-0.1.0-SNAPSHOT.jar")
+interp.load.cp(jarPath)
 import features.stats.spark.{DataFrameUtils, NamedDataFrame}
 
 def loadCSVFile(filePath: String)(implicit spark:SparkSession): DataFrame = {

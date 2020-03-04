@@ -1,11 +1,5 @@
 SHELL = /bin/bash
 
-# bin/amm
-export PATH := $(shell pwd)/bin:$(PATH)
-
-SPARK_RELEASE := spark-2.4.4-bin-without-hadoop
-export SPARK_RELEASE
-
 UNAME := $(shell uname -s)
 ifeq ($(UNAME),Linux)
 COUSIER_POSTFIX := linux
@@ -14,6 +8,18 @@ COUSIER_POSTFIX := macos
 else
 $(error $(UNAME) is not supported.)
 endif
+
+ifndef VIRTUAL_ENV
+WITH_VENV := pipenv run
+else
+WITH_VENV :=
+endif
+
+# bin/amm
+export PATH := $(shell pwd)/bin:$(PATH)
+
+SPARK_RELEASE := spark-2.4.4-bin-without-hadoop
+export SPARK_RELEASE
 
 .DEFAULT_GOAL: amm
 .PHONY: amm
@@ -53,4 +59,17 @@ install-sdkman:
 	@if [[ ! -d ~/.sdkman ]]; then            \
 	  curl -s "https://get.sdkman.io" | bash; \
 	fi                                        \
+	# END
+
+pipenv-install:
+	pipenv install --dev
+
+install-ipykernel:
+	$(WITH_VENV) python -m ipykernel install --user --name python-facets --display-name "python(facets)"
+
+jupyter: install-ipykernel
+	$(WITH_VENV) jupyter notebook      \
+	  --NotebookApp.open_browser=False \
+	  --NotebookApp.port=8036          \
+	  --NotebookApp.allow_origin="*"   \
 	# END
