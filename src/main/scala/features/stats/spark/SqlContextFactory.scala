@@ -20,21 +20,20 @@ import config.ConfigUtil
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.{SQLContext, SparkSession}
 
-
 object SqlContextFactory {
 
   private val INSTANTIATION_LOCK = new Object()
 
   /**
-    * Reference to the last created HiveContext.
-    */
+   * Reference to the last created HiveContext.
+   */
   @transient @volatile private var lastInstantiatedContext: SQLContext = _
 
   /**
-    * Get the singleton HiveContext if it exists or create a new one using the given SparkContext.
-    * This function can be used to create a singleton HiveContext object that can be shared across
-    * the JVM.
-    */
+   * Get the singleton HiveContext if it exists or create a new one using the given SparkContext.
+   * This function can be used to create a singleton HiveContext object that can be shared across
+   * the JVM.
+   */
   def getOrCreate(sparkContext: SparkContext, config: Option[Config] = None): SQLContext = {
 
     if (lastInstantiatedContext == null) {
@@ -50,11 +49,11 @@ object SqlContextFactory {
   }
 
   /**
-    * Initialize the context.
-    *
-    * @param sqlContext -- Spark SqlContext
-    * @param config -- TypeSafe config
-    */
+   * Initialize the context.
+   *
+   * @param sqlContext -- Spark SqlContext
+   * @param config -- TypeSafe config
+   */
   def initializeContext(sqlContext: SQLContext, config: Option[Config] = None): Unit = {
     // Enable dynamic partitioning since partitions are created dynamically in these Spark jobs.
     sqlContext.setConf("hive.exec.dynamic.partition", "true")
@@ -69,8 +68,6 @@ object SqlContextFactory {
     // Note this can not be achieved by setting it on the hadoop configuration
     // within the spark context.
     sqlContext.setConf("hadoop.shell.missing.defaultFs.warning", "false")
-    config.foreach(x =>
-      ConfigUtil.toMap(x).foreach(kv => sqlContext.setConf(kv._1, kv._2))
-    )
+    config.foreach(x => ConfigUtil.toMap(x).foreach(kv => sqlContext.setConf(kv._1, kv._2)))
   }
 }

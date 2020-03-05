@@ -23,7 +23,6 @@ import org.apache.spark.sql.SaveMode
 
 class TensorStatsGeneratorTest extends StatsGeneratorTestBase {
 
-  
   test("GetProtoNums") {
 
     val path = "target/example-test.tfrecord"
@@ -34,10 +33,10 @@ class TensorStatsGeneratorTest extends StatsGeneratorTestBase {
     import spark.implicits._
     val datadf = spark.sparkContext.parallelize(data).toDF(features: _*)
     //save it to make tensorflow record
-    TFRecordHelper.writerTFRecords(datadf, path,  TFRecordType.Example, Some(SaveMode.Overwrite))
+    TFRecordHelper.writerTFRecords(datadf, path, TFRecordType.Example, Some(SaveMode.Overwrite))
 
     //loaded back to test
-    val df =  TFRecordHelper.loadTFRecords(spark, path,  TFRecordType.Example, Some(datadf.schema))
+    val df = TFRecordHelper.loadTFRecords(spark, path, TFRecordType.Example, Some(datadf.schema))
 
     //generate datastats
     val dataframes = List(NamedDataFrame(name = "test", df))
@@ -71,7 +70,7 @@ class TensorStatsGeneratorTest extends StatsGeneratorTestBase {
 
     import featureStatistics.feature_statistics.{Histogram => FSHistogram}
 
-    assert(FSHistogram.HistogramType.QUANTILES ===  histgram.`type`)
+    assert(FSHistogram.HistogramType.QUANTILES === histgram.`type`)
     assert(10 === buckets.length)
     assert(1 === buckets.head.lowValue)
     assert(1 === buckets.head.highValue)
@@ -83,7 +82,7 @@ class TensorStatsGeneratorTest extends StatsGeneratorTestBase {
     assert(2 === numfeat.getNumStats.histograms.length)
     val histgram2 = numfeat.getNumStats.histograms.head
     val buckets2 = histgram2.buckets
-    assert(FSHistogram.HistogramType.STANDARD ===  histgram2.`type`)
+    assert(FSHistogram.HistogramType.STANDARD === histgram2.`type`)
 
     assert(10 === buckets2.length)
     assert(0 === buckets2.head.lowValue)
@@ -93,10 +92,9 @@ class TensorStatsGeneratorTest extends StatsGeneratorTestBase {
     assert(49 === buckets2(9).highValue)
     assert(5 === buckets2(9).sampleCount)
 
-
     val histogram3 = numfeat.getNumStats.histograms(1)
     val buckets3 = histogram3.buckets
-    assert(FSHistogram.HistogramType.QUANTILES ===  histogram3.`type`)
+    assert(FSHistogram.HistogramType.QUANTILES === histogram3.`type`)
 
     assert(10 === buckets3.length)
     assert(0 === buckets3.head.lowValue)
@@ -107,7 +105,6 @@ class TensorStatsGeneratorTest extends StatsGeneratorTestBase {
     assert(5 === buckets3(9).sampleCount)
   }
 
-
   test("testQuantiles") {
     val data1 = (0 until 50)
     val data2 = (0 until 50).map(i => 100)
@@ -115,64 +112,65 @@ class TensorStatsGeneratorTest extends StatsGeneratorTestBase {
     val features = Array("num")
     val spark = sqlContext.sparkSession
     import spark.implicits._
-    val datadf1 = spark.sparkContext.parallelize(data1++data2).toDF(features: _*)
+    val datadf1 = spark.sparkContext.parallelize(data1 ++ data2).toDF(features: _*)
 
     //generate datastats
-    val dataframes = List(NamedDataFrame(name = "test", datadf1) )
+    val dataframes = List(NamedDataFrame(name = "test", datadf1))
     val p = generator.protoFromDataFrames(dataframes)
 
     val numfeat = p.datasets.head.features.head
-    assert(2 ===  numfeat.getNumStats.histograms.length)
-    assert(QUANTILES ===  numfeat.getNumStats.histograms(1).`type`)
+    assert(2 === numfeat.getNumStats.histograms.length)
+    assert(QUANTILES === numfeat.getNumStats.histograms(1).`type`)
     val buckets = numfeat.getNumStats.histograms(1).buckets
-    assert(10 ===  buckets.length)
-    assert(0 ===  buckets.head.lowValue)
-    assert(9.9 ===  buckets.head.highValue)
-    assert(10 ===  buckets.head.sampleCount)
-    assert(100 ===  buckets(9).lowValue)
-    assert(100 ===  buckets(9).highValue)
-    assert(10 ===  buckets(9).sampleCount)
-
+    assert(10 === buckets.length)
+    assert(0 === buckets.head.lowValue)
+    assert(9.9 === buckets.head.highValue)
+    assert(10 === buckets.head.sampleCount)
+    assert(100 === buckets(9).lowValue)
+    assert(100 === buckets(9).highValue)
+    assert(10 === buckets(9).sampleCount)
 
   }
 
   test("testInfinityAndNan") {
-    val data1 = (0 until 50).map(i => 1.0F*i)
+    val data1 = (0 until 50).map(i => 1.0f * i)
     val data2 = Array(Float.PositiveInfinity, Float.NegativeInfinity, Float.NaN)
 
     val features = Array("num")
     val spark = sqlContext.sparkSession
     import spark.implicits._
-    val datadf1 = spark.sparkContext.parallelize(data1++data2).toDF(features: _*)
+    val datadf1 = spark.sparkContext.parallelize(data1 ++ data2).toDF(features: _*)
 
     //generate datastats
-    val dataframes = List(NamedDataFrame(name = "test", datadf1) )
+    val dataframes = List(NamedDataFrame(name = "test", datadf1))
     val p = generator.protoFromDataFrames(dataframes)
 
     println(toJson(p))
 
     val numfeat = p.datasets.head.features.head
-    assert(ProtoDataType.FLOAT ===  numfeat.`type`)
+    assert(ProtoDataType.FLOAT === numfeat.`type`)
 
     assert(Double.NaN.equals(numfeat.getNumStats.min))
     assert(Double.NaN.equals(numfeat.getNumStats.max))
     assert(Double.NaN.equals(numfeat.getNumStats.mean))
     assert(Double.NaN.equals(numfeat.getNumStats.median))
-    assert(Double.NaN .equals(numfeat.getNumStats.stdDev))
-    assert(1 ===  numfeat.getNumStats.numZeros)
-    assert(1 ===  numfeat.getNumStats.commonStats.get.numMissing)
-    assert(52 ===  numfeat.getNumStats.commonStats.get.numNonMissing) //google code : assert(53, numfeat.num_stats.common_stats.num_non_missing)
+    assert(Double.NaN.equals(numfeat.getNumStats.stdDev))
+    assert(1 === numfeat.getNumStats.numZeros)
+    assert(1 === numfeat.getNumStats.commonStats.get.numMissing)
+    assert(
+      52 === numfeat.getNumStats.commonStats.get.numNonMissing
+    ) //google code : assert(53, numfeat.num_stats.common_stats.num_non_missing)
     val hist = numfeat.getNumStats.histograms.head
     val buckets = hist.buckets
-    assert(STANDARD ===  hist.`type`)
-    assert(1 ===  hist.numNan)
-    assert(10 ===  buckets.length)
-    assert(Double.NegativeInfinity ===  buckets.head.lowValue)
-    assert(4.9 ===  buckets.head.highValue)
-    assert(6 ===  buckets.head.sampleCount)
-    assert(44.1 ===  buckets(9).lowValue)
-    assert(Double.PositiveInfinity ===  buckets(9).highValue)
-    assert(6 ===  buckets(9).sampleCount)
+    assert(STANDARD === hist.`type`)
+    assert(1 === hist.numNan)
+    assert(10 === buckets.length)
+    assert(Double.NegativeInfinity === buckets.head.lowValue)
+    assert(4.9 === buckets.head.highValue)
+    assert(6 === buckets.head.sampleCount)
+    assert(44.1 === buckets(9).lowValue)
+    assert(Double.PositiveInfinity === buckets(9).highValue)
+    assert(6 === buckets(9).sampleCount)
   }
 
   test("testInfinitysOnly") {
@@ -185,7 +183,7 @@ class TensorStatsGeneratorTest extends StatsGeneratorTestBase {
     val datadf1 = spark.sparkContext.parallelize(data1).toDF(features: _*)
 
     //generate datastats
-    val dataframes = List(NamedDataFrame(name = "test", datadf1) )
+    val dataframes = List(NamedDataFrame(name = "test", datadf1))
     val p = generator.protoFromDataFrames(dataframes)
 
     println(toJson(p))
@@ -197,7 +195,7 @@ class TensorStatsGeneratorTest extends StatsGeneratorTestBase {
     //numpy empty array histgram return a bucket of 10 and values range from 0 to 0.9
     //we did not follow this default behavior
 
-    assert(STANDARD ===  hist.`type`)
+    assert(STANDARD === hist.`type`)
 //    assert(10 ===  buckets.length)
 //    assert(Double.NegativeInfinity ===  buckets.head.lowValue)
 //    assert(0.1 ===  buckets.head.highValue)
@@ -206,13 +204,12 @@ class TensorStatsGeneratorTest extends StatsGeneratorTestBase {
 //    assert(Double.PositiveInfinity ===  buckets(9).highValue)
 //    assert(1 ===  buckets(9).sampleCount)
 
-        assert(1 ===  buckets.length)
-        assert(Double.NegativeInfinity ===  buckets.head.lowValue)
-        assert(Double.PositiveInfinity  ===  buckets.head.highValue)
-        assert(2 ===  buckets.head.sampleCount) //google code : sample code = 1, I added both neg inf + pos inf counts
+    assert(1 === buckets.length)
+    assert(Double.NegativeInfinity === buckets.head.lowValue)
+    assert(Double.PositiveInfinity === buckets.head.highValue)
+    assert(2 === buckets.head.sampleCount) //google code : sample code = 1, I added both neg inf + pos inf counts
 
   }
-
 
   test("GetProtoMultipleDatasets") {
     //     Tests converting multiple datsets into the feature stats proto
@@ -224,24 +221,22 @@ class TensorStatsGeneratorTest extends StatsGeneratorTestBase {
     val features1 = Array("str", "num")
     val data2 = Seq((1, "two"))
     val features2 = Array("num", "str")
-    
+
     val df1 = spark.sparkContext.parallelize(data1).toDF(features1: _*)
     val df2 = spark.sparkContext.parallelize(data2).toDF(features2: _*)
     df1.show()
     df2.show()
 
     //generate datastats
-    val dataframes = List(NamedDataFrame(name = "test1", df1), NamedDataFrame(name="test2", df2))
+    val dataframes = List(NamedDataFrame(name = "test1", df1), NamedDataFrame(name = "test2", df2))
     val p = generator.protoFromDataFrames(dataframes)
 
-
     assert(2 === p.datasets.length)
-    val testData1 = p.datasets.head 
+    val testData1 = p.datasets.head
     assert("test1" === testData1.name)
-    assert(2 ===testData1.numExamples)
+    assert(2 === testData1.numExamples)
     val numFeatIndex1 = if (testData1.features.head.name == "num") 0 else 1
     assert(0 === testData1.features(numFeatIndex1).getNumStats.max)
-
 
     val testData2 = p.datasets(1)
     val numFeatIndex2 = if (testData2.features.head.name == "num") 0 else 1
@@ -253,11 +248,10 @@ class TensorStatsGeneratorTest extends StatsGeneratorTestBase {
 
   test("GetProtoStrings") {
 
-
     val data1 = Array.fill(2)("hello")
     val data2 = Array.fill(3)("hi")
     val data3 = Array("hey")
-    val data  = data1 ++ data2 ++ data3
+    val data = data1 ++ data2 ++ data3
 
     val features = Array("str")
     val spark = sqlContext.sparkSession
@@ -266,7 +260,7 @@ class TensorStatsGeneratorTest extends StatsGeneratorTestBase {
     val datadf1 = spark.sparkContext.parallelize(data).toDF(features: _*)
 
     //generate datastats
-    val dataframes = List(NamedDataFrame(name = "test", datadf1) )
+    val dataframes = List(NamedDataFrame(name = "test", datadf1))
     val p = generator.protoFromDataFrames(dataframes)
 
     println(toJson(p))
@@ -279,16 +273,16 @@ class TensorStatsGeneratorTest extends StatsGeneratorTestBase {
     assert("str" === strfeat.name)
     assert(ProtoDataType.STRING === strfeat.`type`)
     assert(3 === strfeat.getStringStats.unique)
-    assert(Math.abs(19 / 6.0 - strfeat.getStringStats.avgLength) <= 1E-4)
-    assert(0 ===strfeat.getStringStats.commonStats.get.numMissing)
-    assert(6 ===strfeat.getStringStats.commonStats.get.numNonMissing)
-    assert(1 ===strfeat.getStringStats.commonStats.get.minNumValues)
-    assert(1 ===strfeat.getStringStats.commonStats.get.maxNumValues)
-    assert(1 ===strfeat.getStringStats.commonStats.get.avgNumValues)
+    assert(Math.abs(19 / 6.0 - strfeat.getStringStats.avgLength) <= 1e-4)
+    assert(0 === strfeat.getStringStats.commonStats.get.numMissing)
+    assert(6 === strfeat.getStringStats.commonStats.get.numNonMissing)
+    assert(1 === strfeat.getStringStats.commonStats.get.minNumValues)
+    assert(1 === strfeat.getStringStats.commonStats.get.maxNumValues)
+    assert(1 === strfeat.getStringStats.commonStats.get.avgNumValues)
 
     val hist = strfeat.getStringStats.commonStats.get.getNumValuesHistogram
     val buckets = hist.buckets
-    assert(QUANTILES ===  hist.`type`)
+    assert(QUANTILES === hist.`type`)
     assert(buckets.length === 10)
     assert(buckets.head.lowValue === 1)
     assert(buckets.head.highValue === 1)
@@ -318,16 +312,15 @@ class TensorStatsGeneratorTest extends StatsGeneratorTestBase {
 
   }
 
-
   test("TFExamplewithMissingValues") {
 
-    val data  = Seq(null, "test" )
+    val data = Seq(null, "test")
     val features = Array("str")
     val spark = sqlContext.sparkSession
 
     import spark.implicits._
     val datadf1 = spark.sparkContext.parallelize(data).toDF(features: _*)
-    val dataframes = List(NamedDataFrame(name = "test", datadf1) )
+    val dataframes = List(NamedDataFrame(name = "test", datadf1))
     val p = generator.protoFromDataFrames(dataframes)
 
     val strfeat = p.datasets.head.features.head
@@ -335,23 +328,22 @@ class TensorStatsGeneratorTest extends StatsGeneratorTestBase {
     assert(strfeatStats.commonStats.get.numMissing == 1)
     assert(strfeat.`type` == ProtoDataType.STRING)
 
-
   }
 
   test("TFExampleSequenceContxt") {
-    val data  = (0 until 50 )
+    val data = (0 until 50)
     val features = Array("num")
     val spark = sqlContext.sparkSession
 
     import spark.implicits._
     val datadf1 = spark.sparkContext.parallelize(data).toDF(features: _*)
-    val dataframes = List(NamedDataFrame(name = "test", datadf1) )
+    val dataframes = List(NamedDataFrame(name = "test", datadf1))
     val p = generator.protoFromDataFrames(dataframes)
 
     println("json=" + toJson(p))
 
-    assert(p.datasets.head.numExamples ==50)
-    val numfeat      = p.datasets.head.features.head
+    assert(p.datasets.head.numExamples == 50)
+    val numfeat = p.datasets.head.features.head
     val numfeatStats = numfeat.getNumStats
     assert(numfeatStats.commonStats.get.numMissing == 0)
     assert(numfeat.`type` == ProtoDataType.INT)
@@ -361,26 +353,26 @@ class TensorStatsGeneratorTest extends StatsGeneratorTestBase {
 
   }
 
-  private val seqdata= (0 until 50).toArray.toList
+  private val seqdata = (0 until 50).toArray.toList
   test("ExampleSequenceFeatureList") {
-    val data  = Array(Array(seqdata))
+    val data = Array(Array(seqdata))
     val features = Array("num")
     val spark = sqlContext.sparkSession
 
     import spark.implicits._
     val datadf1 = spark.sparkContext.parallelize(data).toDF(features: _*)
-    val dataframes = List(NamedDataFrame(name = "test", datadf1) )
+    val dataframes = List(NamedDataFrame(name = "test", datadf1))
     val p = generator.protoFromDataFrames(dataframes)
     println("json=" + toJson(p))
 
-    assert(p.datasets.head.numExamples ==1)
-    val numfeat      = p.datasets.head.features.head
+    assert(p.datasets.head.numExamples == 1)
+    val numfeat = p.datasets.head.features.head
     assert(numfeat.getNumStats.commonStats.get.featureListLengthHistogram.isDefined)
 
   }
 
   test("ExampleSequenceFeatureWithValueList") {
-    val data1  = Seq(Seq(seqdata), Seq(seqdata))
+    val data1 = Seq(Seq(seqdata), Seq(seqdata))
     val features = Array("num")
     val spark = sqlContext.sparkSession
 
@@ -388,38 +380,36 @@ class TensorStatsGeneratorTest extends StatsGeneratorTestBase {
     val datadf1 = spark.sparkContext.parallelize(data1).toDF(features: _*)
     datadf1.show()
 
-
-    val dataframes = List(NamedDataFrame(name = "test", datadf1) )
+    val dataframes = List(NamedDataFrame(name = "test", datadf1))
     val p = generator.protoFromDataFrames(dataframes)
     println("json=" + toJson(p))
 
-    assert(p.datasets.head.numExamples ==2)
-    val numfeat      = p.datasets.head.features.head
+    assert(p.datasets.head.numExamples == 2)
+    val numfeat = p.datasets.head.features.head
     assert(numfeat.getNumStats.commonStats.get.featureListLengthHistogram.isDefined)
 
   }
 
-
   test("ExampleSequenceWithMultipleFeatureValueList") {
 
-    val featData1 = (0 until 25).map( j =>  Array(j) ).toArray.toList
-    val featData2 = (0 until 25).map( j =>  Array(25 + j) ).toArray.toList
+    val featData1 = (0 until 25).map(j => Array(j)).toArray.toList
+    val featData2 = (0 until 25).map(j => Array(25 + j)).toArray.toList
 
     val features = Array("num")
     val spark = sqlContext.sparkSession
 
     import spark.implicits._
-    val datadf1 = spark.sparkContext.parallelize(Seq(featData1)++ Seq(featData2)).toDF(features: _*)
+    val datadf1 = spark.sparkContext.parallelize(Seq(featData1) ++ Seq(featData2)).toDF(features: _*)
     datadf1.show()
 
     DataFrameUtils.flattenDataFrame(datadf1, recursive = false).show()
 
-    val dataframes = List(NamedDataFrame(name = "test", datadf1) )
+    val dataframes = List(NamedDataFrame(name = "test", datadf1))
     val p = generator.protoFromDataFrames(dataframes)
     println("json=" + toJson(p))
 
-    assert(p.datasets.head.numExamples ==2)
-    val numfeat  = p.datasets.head.features.head
+    assert(p.datasets.head.numExamples == 2)
+    val numfeat = p.datasets.head.features.head
     assert(numfeat.getNumStats.commonStats.get.featureListLengthHistogram.isDefined)
 
     val featListHist = numfeat.getNumStats.commonStats.get.featureListLengthHistogram
@@ -432,18 +422,20 @@ class TensorStatsGeneratorTest extends StatsGeneratorTestBase {
   }
 
   //change ignore to test to run this.
-  ignore ("SequenceExample1") {
+  ignore("SequenceExample1") {
 
-    val data = Seq((Seq(Seq("Tim Robbins","Morgan Freeman"), Seq("Brad Pitt","Edward Norton","Helena Bonham Carter")),
-                    Seq(Seq("The Shawshank Redemption"),Seq("Fight Club")),
-                    Seq(Seq(9.0), Seq(9.7)),
-                    19L,
-                    List("Majesty Rose", "Savannah Outen", "One Direction"),
-                    "pt_BR"
-                  ))
-    val featureNames = Seq("Movie Actors" ,"Movie Names",  "Movie Ratings","Age" ,"Favorites",  "Locale")
-    val dataDF = spark.createDataFrame(data).toDF(featureNames:_*)
-
+    val data = Seq(
+      (
+        Seq(Seq("Tim Robbins", "Morgan Freeman"), Seq("Brad Pitt", "Edward Norton", "Helena Bonham Carter")),
+        Seq(Seq("The Shawshank Redemption"), Seq("Fight Club")),
+        Seq(Seq(9.0), Seq(9.7)),
+        19L,
+        List("Majesty Rose", "Savannah Outen", "One Direction"),
+        "pt_BR"
+      )
+    )
+    val featureNames = Seq("Movie Actors", "Movie Names", "Movie Ratings", "Age", "Favorites", "Locale")
+    val dataDF = spark.createDataFrame(data).toDF(featureNames: _*)
 
     dataDF.printSchema()
     dataDF.show()
@@ -454,8 +446,5 @@ class TensorStatsGeneratorTest extends StatsGeneratorTestBase {
     println("json=" + toJson(p))
 
   }
-
-
-
 
 }

@@ -24,7 +24,6 @@ import org.apache.spark.sql.DataFrame
 
 class FeatureStatsGeneratorTest extends StatsGeneratorTestBase {
 
-
   test("generateProtoFromDataFrame") {
 
     val data = Seq((1, "hi"), (2, "hello"), (3, "hi"))
@@ -45,12 +44,10 @@ class FeatureStatsGeneratorTest extends StatsGeneratorTestBase {
     assert(3 === testData.numExamples)
     assert(2 === testData.features.length)
 
-
     val (numfeat, stringfeat) =
       if (testData.features.head.name == "TestFeatureInt") {
         (testData.features.head, testData.features(1))
-      }
-      else {
+      } else {
         (testData.features(1), testData.features.head)
       }
 
@@ -67,38 +64,36 @@ class FeatureStatsGeneratorTest extends StatsGeneratorTestBase {
     assert(FeatureNameStatistics.Type.STRING === stringfeat.`type`)
     assert(2 === stringfeat.getStringStats.unique)
 
-
-  //  println(proto.toString)
-  //  persistProto(proto)
+    //  println(proto.toString)
+    //  persistProto(proto)
     val r = toJson(proto)
-  //  println(r)
+    //  println(r)
 
   }
-
 
   test("testGenEntry") {
     val spark = sqlContext.sparkSession
     import spark.implicits._
 
-    var arr1 = Seq[Double] (1.0, 2.0, Double.NaN, Double.NaN, 3.0, null.asInstanceOf[Double])
+    var arr1 = Seq[Double](1.0, 2.0, Double.NaN, Double.NaN, 3.0, null.asInstanceOf[Double])
     var df = sc.parallelize(arr1).toDF("TestFeatureDouble")
 
     var dataframes = List(NamedDataFrame(name = "testDataSet1", df))
-    var dataset:DataEntrySet = generator.toDataEntries(dataframes).head
-    var entry:DataEntry = dataset.entries.head
+    var dataset: DataEntrySet = generator.toDataEntries(dataframes).head
+    var entry: DataEntry = dataset.entries.head
 
     assert(2 === entry.missing)
 
-    val arr2 = Seq[String] ("a","b", Float.NaN.toString, "c", null.asInstanceOf[String])
+    val arr2 = Seq[String]("a", "b", Float.NaN.toString, "c", null.asInstanceOf[String])
     df = sc.parallelize(arr2).toDF("TestFeatureStr")
     dataframes = List(NamedDataFrame(name = "testDataSet2", df))
-    dataset   = generator.toDataEntries(dataframes).head
+    dataset = generator.toDataEntries(dataframes).head
     entry = dataset.entries.head
 
     assert(2 === entry.missing)
 
   }
-  test ("convertTimeTypes") {
+  test("convertTimeTypes") {
 
     import java.util.TimeZone
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
@@ -114,24 +109,24 @@ class FeatureStatsGeneratorTest extends StatsGeneratorTestBase {
     var arr = Seq[String]("2005-02-25", "2006-02-25")
     var df = sc.parallelize(arr).toDF("TestFeatureDate").select(to_date($"TestFeatureDate"))
     var dataframes = List(NamedDataFrame(name = "testDataSet1", df))
-    var dataset:DataEntrySet = generator.toDataEntries(dataframes).head
+    var dataset: DataEntrySet = generator.toDataEntries(dataframes).head
     assert(dataset.entries.head.`type`.isInt === true)
 
-    var entry:DataEntry = dataset.entries.head
+    var entry: DataEntry = dataset.entries.head
     val vals = entry.values.collect().map(r => r.getAs[Long](0))
 
-    assert(Array(ts1*1000, ts2*1000) === vals)
+    assert(Array(ts1 * 1000, ts2 * 1000) === vals)
 
     import java.time.{LocalDate, Month}
 
     val startDate = LocalDate.of(2008, Month.JANUARY, 1)
     val endDate = LocalDate.of(2009, Month.JANUARY, 1)
     val numberOfDays = ChronoUnit.DAYS.between(startDate, endDate)
-    var arr1 = Seq[Long](numberOfDays*24*60*60*1000*1000)
+    var arr1 = Seq[Long](numberOfDays * 24 * 60 * 60 * 1000 * 1000)
     var df1 = sc.parallelize(arr1).toDF("TestFeatureDate")
     var dataframes1 = List(NamedDataFrame(name = "testDataSet1", df1))
-    var dataset1:DataEntrySet = generator.toDataEntries(dataframes1).head
-    var entry1:DataEntry = dataset1.entries.head
+    var dataset1: DataEntrySet = generator.toDataEntries(dataframes1).head
+    var entry1: DataEntry = dataset1.entries.head
     val vals1 = entry1.values.collect().map(r => r.getAs[Long](0))
 
     assert(vals1.head === 31622400000000L)
@@ -155,22 +150,23 @@ class FeatureStatsGeneratorTest extends StatsGeneratorTestBase {
     assert(FeatureNameStatistics.Type.STRING === generator.convertDataType("Unit"))
   }
 
-
   test("testGetDatasetsProtoSequenceExampleHistogram") {
-    val sp= sqlContext.sparkSession
+    val sp = sqlContext.sparkSession
     import sp.implicits._
-    var df = sc.parallelize(Seq(1,2,2,3)).toDF("featureInt")
-    var countDF = sc.parallelize(Seq (1, 2, 1)).toDF("counts")
-    var featLensDF = sc.parallelize(Seq (1, 2, 1)).toDF("feat_lens")
+    var df = sc.parallelize(Seq(1, 2, 2, 3)).toDF("featureInt")
+    var countDF = sc.parallelize(Seq(1, 2, 1)).toDF("counts")
+    var featLensDF = sc.parallelize(Seq(1, 2, 1)).toDF("feat_lens")
 
-    val entry: DataEntry = DataEntry( featureName = "featureInt",
-                                      `type` = FeatureNameStatistics.Type.INT,
-                                      values = df,
-                                      counts = countDF,
-                                      missing = 0,
-                                      featLens = Some(featLensDF))
+    val entry: DataEntry = DataEntry(
+      featureName = "featureInt",
+      `type` = FeatureNameStatistics.Type.INT,
+      values = df,
+      counts = countDF,
+      missing = 0,
+      featLens = Some(featLensDF)
+    )
 
-    var dataset:DataEntrySet = DataEntrySet(name ="testDataset",size=3, entries = Array(entry))
+    var dataset: DataEntrySet = DataEntrySet(name = "testDataset", size = 3, entries = Array(entry))
     val p = generator.genDatasetFeatureStats(List(dataset))
     val hist = p.datasets.head.features.head.getNumStats.getCommonStats.getFeatureListLengthHistogram
     val hist2 = p.datasets.head.features.head.getNumStats.getCommonStats.getNumValuesHistogram
@@ -185,41 +181,30 @@ class FeatureStatsGeneratorTest extends StatsGeneratorTestBase {
     assert(2 === buckets(9).highValue)
     assert(.3 === buckets(9).sampleCount)
 
-
   }
-
 
   test("testGetDatasetsProtoWithWhitelist") {
 
-    val sp= sqlContext.sparkSession
+    val sp = sqlContext.sparkSession
     import sp.implicits._
-    var df1 = sc.parallelize(Seq(1,2,3)).toDF("testFeature")
-    var countDF1 = sc.parallelize(Seq (1, 1, 1)).toDF("counts")
-    val entry1: DataEntry = DataEntry( featureName = "testFeature",
-      `type` = FeatureNameStatistics.Type.INT,
-      values = df1,
-      counts = countDF1,
-      missing = 0 )
+    var df1 = sc.parallelize(Seq(1, 2, 3)).toDF("testFeature")
+    var countDF1 = sc.parallelize(Seq(1, 1, 1)).toDF("counts")
+    val entry1: DataEntry =
+      DataEntry(featureName = "testFeature", `type` = FeatureNameStatistics.Type.INT, values = df1, counts = countDF1, missing = 0)
 
-    var df2 = sc.parallelize(Seq(5,6)).toDF("ignoreFeature")
-    var countDF2 = sc.parallelize(Seq (1, 1)).toDF("counts")
-    val entry2: DataEntry = DataEntry( featureName = "ignoreFeature",
-      `type` = FeatureNameStatistics.Type.INT,
-      values = df2,
-      counts = countDF2,
-      missing = 1 )
+    var df2 = sc.parallelize(Seq(5, 6)).toDF("ignoreFeature")
+    var countDF2 = sc.parallelize(Seq(1, 1)).toDF("counts")
+    val entry2: DataEntry =
+      DataEntry(featureName = "ignoreFeature", `type` = FeatureNameStatistics.Type.INT, values = df2, counts = countDF2, missing = 1)
 
-
-    var dataset:DataEntrySet = DataEntrySet(name ="testDataset",size=3, entries = Array(entry1,entry2))
+    var dataset: DataEntrySet = DataEntrySet(name = "testDataset", size = 3, entries = Array(entry1, entry2))
     val p = generator.genDatasetFeatureStats(List(dataset), Set("testFeature"))
     assert(1 === p.datasets.length)
     val testData = p.datasets.head
 
     assert("testDataset" === testData.name)
     assert(3 === testData.numExamples)
-    testData.features.foreach {f =>
-      println("feauture name = "+ f.name)
-    }
+    testData.features.foreach(f => println("feauture name = " + f.name))
     assert(1 === testData.features.length)
     val numfeat = testData.features.head
     assert("testFeature" === numfeat.name)
@@ -231,13 +216,12 @@ class FeatureStatsGeneratorTest extends StatsGeneratorTestBase {
     val spark = sqlContext.sparkSession
     import spark.implicits._
 
-    val data = Seq[String]("hi", "good", "hi","hi","a", "a")
-    val df :DataFrame= sqlContext.sparkContext.parallelize(data).toDF("TestFeatureString")
+    val data = Seq[String]("hi", "good", "hi", "hi", "a", "a")
+    val df: DataFrame = sqlContext.sparkContext.parallelize(data).toDF("TestFeatureString")
     val dataframes = List(NamedDataFrame(name = "testDataSet", df))
 //    # Getting proto from ProtoFromDataFrames instead of GetDatasetsProto
 //    # directly to avoid any hand written values ex: size of dataset.
-    val p = generator.protoFromDataFrames(dataframes, catHistgmLevel=Some(2))
-
+    val p = generator.protoFromDataFrames(dataframes, catHistgmLevel = Some(2))
 
     assert(1 === p.datasets.size)
     val testData = p.datasets.head

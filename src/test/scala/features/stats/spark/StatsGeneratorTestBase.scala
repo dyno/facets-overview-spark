@@ -14,7 +14,6 @@
 // ==============================================================================
 //
 
-
 package features.stats.spark
 
 import java.io.File
@@ -23,29 +22,29 @@ import java.nio.file.{Files, Paths}
 import featureStatistics.feature_statistics.DatasetFeatureStatisticsList
 import org.apache.spark.sql.{DataFrame, SQLContext, SparkSession}
 import org.apache.spark.{SparkConf, SparkContext}
-import org.scalatest.{BeforeAndAfterAll, FunSuite}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.BeforeAndAfterAll
 
+abstract class StatsGeneratorTestBase extends AnyFunSuite with BeforeAndAfterAll {
 
-abstract class StatsGeneratorTestBase extends FunSuite with BeforeAndAfterAll {
+  val appName = "protoGenerator"
+  val SPARK_MASTER_URL = "local[2]"
+  var sc: SparkContext = _
+  var sqlContext: SQLContext = _
+  val generator = new FeatureStatsGenerator(DatasetFeatureStatisticsList())
+  var spark: SparkSession = _
 
-    val appName = "protoGenerator"
-    val SPARK_MASTER_URL = "local[2]"
-    var sc: SparkContext = _
-    var sqlContext: SQLContext = _
-    val generator = new FeatureStatsGenerator(DatasetFeatureStatisticsList())
-    var spark: SparkSession = _
+  override protected def beforeAll(): Unit = {
+    val sparkConf = new SparkConf().setMaster(SPARK_MASTER_URL).setAppName(appName)
+    //sparkConf.set("spark.sql.session.timeZone", "GMT")
 
-    override protected def beforeAll(): Unit = {
-      val sparkConf = new SparkConf().setMaster(SPARK_MASTER_URL).setAppName(appName)
-      //sparkConf.set("spark.sql.session.timeZone", "GMT")
+    sc = SparkContext.getOrCreate(sparkConf)
+    sqlContext = SqlContextFactory.getOrCreate(sc)
+    spark = sqlContext.sparkSession
+    spark.sparkContext.setLogLevel("ERROR")
+  }
 
-      sc = SparkContext.getOrCreate(sparkConf)
-      sqlContext = SqlContextFactory.getOrCreate(sc)
-      spark = sqlContext.sparkSession
-      spark.sparkContext.setLogLevel("ERROR")
-    }
-
-  def persistProto(proto: DatasetFeatureStatisticsList, base64Encode: Boolean, file: File ):Unit = {
+  def persistProto(proto: DatasetFeatureStatisticsList, base64Encode: Boolean, file: File): Unit =
     if (base64Encode) {
       import java.util.Base64
       val b = Base64.getEncoder.encode(proto.toByteArray)
@@ -53,27 +52,23 @@ abstract class StatsGeneratorTestBase extends FunSuite with BeforeAndAfterAll {
       import java.nio.file.{Files, Paths}
 
       Files.write(Paths.get(file.getPath), new String(b, UTF_8).getBytes(UTF_8))
-    }
-    else {
+    } else {
       Files.write(Paths.get(file.getPath), proto.toByteArray)
     }
-  }
 
-
-  def loadProto(base64Encode: Boolean, file: File ): DatasetFeatureStatisticsList = {
+  def loadProto(base64Encode: Boolean, file: File): DatasetFeatureStatisticsList = {
     import java.util.Base64
     val bs = Files.readAllBytes(Paths.get(file.getPath))
     val bytes = if (base64Encode) Base64.getDecoder.decode(bs) else bs
     DatasetFeatureStatisticsList.parseFrom(bytes)
   }
 
-  def toJson(proto: DatasetFeatureStatisticsList) : String = {
+  def toJson(proto: DatasetFeatureStatisticsList): String = {
     import scalapb.json4s.JsonFormat
     JsonFormat.toJsonString(proto)
   }
 
-
-  def loadCSVFile(filePath: String) : DataFrame = {
+  def loadCSVFile(filePath: String): DataFrame = {
     val spark = sqlContext.sparkSession
     spark.read
       .format("org.apache.spark.sql.execution.datasources.csv.CSVFileFormat")
@@ -83,12 +78,10 @@ abstract class StatsGeneratorTestBase extends FunSuite with BeforeAndAfterAll {
       .load(filePath)
   }
 
-
-  def writeToFile(fileName:String, content:String): Unit = {
+  def writeToFile(fileName: String, content: String): Unit = {
     import java.nio.charset.StandardCharsets
     import java.nio.file.{Files, Paths}
     Files.write(Paths.get(fileName), content.getBytes(StandardCharsets.UTF_8))
   }
-
 
 }
