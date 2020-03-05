@@ -69,7 +69,7 @@ protobuf {
   }
 }
 
-// Add geneated Scala code as a source directory
+// Add generated Scala code as a source directory
 sourceSets {
   main {
     proto {
