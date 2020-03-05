@@ -9,9 +9,6 @@ else
 $(error $(UNAME) is not supported.)
 endif
 
-# bin/amm
-export PATH := $(shell pwd)/bin:$(PATH)
-
 
 SPARK_RELEASE := spark-2.4.5-bin-without-hadoop
 SPARK_VERSION := $(shell awk -v FS=- '{print $$2;}' <<<$(SPARK_RELEASE))
@@ -19,6 +16,10 @@ $(info SPARK_RELEASE=$(SPARK_RELEASE), SPARK_VERSION=$(SPARK_VERSION))
 
 # https://api.sdkman.io/2/candidates/java/Darwin/versions/list?installed=
 JAVA_VERSION := 8.0.232-amzn
+
+export PATH := $(shell pwd)/bin:$(PATH)
+# bin/amm use it to tell whether to start spark with scala 2.11 or 2.12
+export SPARK_RELEASE
 
 
 .DEFAULT_GOAL: amm
