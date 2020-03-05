@@ -6,9 +6,12 @@ verify_ssl = true
 [dev-packages]
 
 [packages]
+facets-overview = "*"
+jupyter = "*"
 matplotlib = "*"
 pandas = "*"
-jupyter = "*"
+pyarrow = "*"
+s3fs = "*"
 sklearn = "*"
 tensorflow = "*"
 
