@@ -2,24 +2,24 @@ SHELL = /bin/bash
 
 UNAME := $(shell uname -s)
 ifeq ($(UNAME),Linux)
-COUSIER_POSTFIX := linux
+COURSIER_POSTFIX := linux
 else ifeq ($(UNAME),Darwin)
-COUSIER_POSTFIX := macos
+COURSIER_POSTFIX := macos
 else
 $(error $(UNAME) is not supported.)
-endif
-
-ifndef VIRTUAL_ENV
-WITH_VENV := pipenv run
-else
-WITH_VENV :=
 endif
 
 # bin/amm
 export PATH := $(shell pwd)/bin:$(PATH)
 
-SPARK_RELEASE := spark-2.4.4-bin-without-hadoop
-export SPARK_RELEASE
+
+SPARK_RELEASE := spark-2.4.5-bin-without-hadoop
+SPARK_VERSION := $(shell awk -v FS=- '{print $$2;}' <<<$(SPARK_RELEASE))
+$(info SPARK_RELEASE=$(SPARK_RELEASE), SPARK_VERSION=$(SPARK_VERSION))
+
+# https://api.sdkman.io/2/candidates/java/Darwin/versions/list?installed=
+JAVA_VERSION := 8.0.232-amzn
+
 
 .DEFAULT_GOAL: amm
 .PHONY: amm
@@ -36,11 +36,8 @@ install-coursier: bin/coursier
 bin/coursier:
 	@echo "-- install [coursier](https://get-coursier.io/docs/cli-overview.html#installation)"
 	mkdir -p bin
-	curl -L -o bin/coursier https://git.io/coursier-cli-$(COUSIER_POSTFIX)
+	curl -L -o bin/coursier https://git.io/coursier-cli-$(COURSIER_POSTFIX)
 	chmod +x bin/coursier
-
-# https://api.sdkman.io/2/candidates/java/Darwin/versions/list?installed=
-JAVA_VERSION := 8.0.232-amzn
 
 .PHONY: install-java
 install-java: install-sdkman
@@ -61,15 +58,7 @@ install-sdkman:
 	fi                                        \
 	# END
 
-pipenv-install:
-	pipenv install --dev
-
-install-ipykernel:
-	$(WITH_VENV) python -m ipykernel install --user --name python-facets --display-name "python(facets)"
-
-jupyter: install-ipykernel
-	$(WITH_VENV) jupyter notebook      \
-	  --NotebookApp.open_browser=False \
-	  --NotebookApp.port=8036          \
-	  --NotebookApp.allow_origin="*"   \
+$(SPARK_RELEASE):
+	curl -LO http://mirrors.ibiblio.org/apache/spark/spark-$(SPARK_VERSION)/$(SPARK_RELEASE).tgz \
+	  && tar xvf $(SPARK_RELEASE).tgz                                                                  \
 	# END

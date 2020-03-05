@@ -1,3 +1,5 @@
 .gradle
 build
-*_signifyd.*
+tmp
+tmp.*
+.idea

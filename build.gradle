@@ -24,7 +24,7 @@ dependencies {
     compile "org.apache.spark:spark-core_%%:${sparkVersion}"
     compile "org.apache.spark:spark-hive_%%:${sparkVersion}"
     compile "org.apache.spark:spark-sql_%%:${sparkVersion}"
-    compile 'com.thesamet.scalapb:scalapb-runtime_%%:0.9.6'
+    compile "com.thesamet.scalapb:scalapb-runtime_%%:${scalapbVersion}"
     compile 'com.thesamet.scalapb:scalapb-json4s_%%:0.10.0'
     compile 'org.tensorflow:spark-tensorflow-connector_%%:1.15.0'
     compile 'org.tensorflow:tensorflow:1.8.0'
@@ -56,14 +56,11 @@ protobuf {
   generateProtoTasks {
     all().each { task ->
       task.builtins {
-          // if you don't want java code to be generated.
-          remove java
+        remove java
       }
       task.plugins {
-          scalapb {
-            // add any ScalaPB generator options here. See: https://scalapb.github.io/scalapbc.html#passing-generator-parameters
-            // option 'flat_package'
-          }
+        scalapb {
+        }
       }
     }
   }
@@ -73,7 +70,7 @@ protobuf {
 sourceSets {
   main {
     proto {
-      srcDir 'src/main/protobuf'
+      srcDir 'facets/facets_overview/proto'
     }
     scala {
         srcDirs "${protobuf.generatedFilesBaseDir}/main/scalapb"
