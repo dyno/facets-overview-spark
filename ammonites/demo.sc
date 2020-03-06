@@ -1,61 +1,39 @@
-// -----------------------------------------------------------------------------
-// SparkSession
+import $ivy.`com.thesamet.scalapb::scalapb-runtime:0.9.6`
 
-import $ivy.`sh.almond::ammonite-spark:0.4.2`
-import org.apache.spark.sql.AmmoniteSparkSession
+// load the built jar
+val jars = ls.rec ! pwd / up / "build" |? { _.last.endsWith(".jar") }
+interp.load.cp(jars.head)
 
-import org.apache.spark.sql._
-import org.apache.spark.sql.functions._
-import org.apache.spark.sql.types._
-import org.apache.spark.sql.{DataFrame, Dataset, Encoder, Encoders => SparkEncoders, Row}
-import org.apache.spark.sql.catalyst.encoders.{ExpressionEncoder, RowEncoder}
-
-implicit val spark:SparkSession = {
-  AmmoniteSparkSession
-    .builder()
-    .master("local[*]")
-    .config("spark.home", sys.env("SPARK_HOME"))
-    .config("spark.logConf", "true")
-    .getOrCreate()
-}
-
-import org.apache.log4j.{Level, Logger}
-Logger.getLogger("org").setLevel(Level.OFF)
-
+interp.load.module(pwd / RelPath("libs/sparkSession.sc"))
+@
 
 // -----------------------------------------------------------------------------
 // Utility Functions
+import features.stats.spark.{DataFrameUtils, NamedDataFrame}
 
-{
-  val jars = ls.rec ! pwd / up / "build" |? { _.last.endsWith(".jar") }
-  interp.load.cp(jars.head)
-  import features.stats.spark.{DataFrameUtils, NamedDataFrame}
+def loadCSVFile(filePath: String)(implicit spark: SparkSession): DataFrame =
+  spark.read
+    .format("org.apache.spark.sql.execution.datasources.csv.CSVFileFormat")
+    .option("header", "false") //reading the headers
+    .option("mode", "DROPMALFORMED")
+    .option("inferSchema", "true")
+    .load(filePath)
 
-  def loadCSVFile(filePath: String)(implicit spark: SparkSession): DataFrame =
-    spark.read
-      .format("org.apache.spark.sql.execution.datasources.csv.CSVFileFormat")
-      .option("header", "false") //reading the headers
-      .option("mode", "DROPMALFORMED")
-      .option("inferSchema", "true")
-      .load(filePath)
+import java.io.File
+import java.nio.charset.Charset
+import java.nio.file.{Files, Paths}
+import java.util.Base64
+import featureStatistics.feature_statistics.DatasetFeatureStatisticsList
 
-  import $ivy.`com.thesamet.scalapb::scalapb-runtime:0.9.6`
-  import java.io.File
-  import java.nio.charset.Charset
-  import java.nio.file.{Files, Paths}
-  import java.util.Base64
-  import featureStatistics.feature_statistics.DatasetFeatureStatisticsList
+def persistProto(proto: DatasetFeatureStatisticsList, base64Encode: Boolean = false, file: File) =
+  if (base64Encode) {
+    val b = Base64.getEncoder.encode(proto.toByteArray)
+    val UTF8_CHARSET = Charset.forName("UTF-8")
 
-  def persistProto(proto: DatasetFeatureStatisticsList, base64Encode: Boolean = false, file: File) =
-    if (base64Encode) {
-      val b = Base64.getEncoder.encode(proto.toByteArray)
-      val UTF8_CHARSET = Charset.forName("UTF-8")
-
-      Files.write(Paths.get(file.getPath), new String(b, UTF8_CHARSET).getBytes())
-    } else {
-      Files.write(Paths.get(file.getPath), proto.toByteArray)
-    }
-}
+    Files.write(Paths.get(file.getPath), new String(b, UTF8_CHARSET).getBytes())
+  } else {
+    Files.write(Paths.get(file.getPath), proto.toByteArray)
+  }
 
 // -----------------------------------------------------------------------------
 import features.stats.spark.{DataFrameUtils, NamedDataFrame}

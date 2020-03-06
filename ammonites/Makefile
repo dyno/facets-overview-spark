@@ -25,8 +25,14 @@ export SPARK_RELEASE
 .DEFAULT_GOAL: amm
 .PHONY: amm
 amm: bin/amm bin/coursier
-	source ~/.sdkman/bin/sdkman-init.sh         \
-	&& amm  --no-home-predef --predef predef.sc \
+	source ~/.sdkman/bin/sdkman-init.sh                                    \
+	  && AMMONITE_REPL=1 amm  --no-home-predef --predef libs/predefRepl.sc \
+	# END
+
+FORCE:
+%.sc: FORCE
+	source ~/.sdkman/bin/sdkman-init.sh                   \
+	  && amm  --no-home-predef --predef libs/predef.sc $@ \
 	# END
 
 .PHONY: install-ammonite
@@ -61,5 +67,12 @@ install-sdkman:
 
 $(SPARK_RELEASE):
 	curl -LO http://mirrors.ibiblio.org/apache/spark/spark-$(SPARK_VERSION)/$(SPARK_RELEASE).tgz \
-	  && tar xvf $(SPARK_RELEASE).tgz                                                                  \
+	  && tar xvf $(SPARK_RELEASE).tgz                                                            \
 	# END
+
+# 1583456966205_DATA.csv is from https://ww2.amstat.org/censusatschool/RandomSampleForm.cfm
+parquet/_SUCCESS: 1583456966205_DATA.csv
+	$(MAKE) schoolCensusData.sc
+
+.PHONY: data
+data:parquet/_SUCCESS
