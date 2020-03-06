@@ -9,14 +9,14 @@ else
 $(error $(UNAME) is not supported.)
 endif
 
-export USE_AMMONITE_SPARK := 0
 export ENABLE_HIVE := 0
-
 ifeq ($(ENABLE_HIVE),1)
 # XXX: `analyze table` requires hive
 SPARK_RELEASE := spark-2.4.5-bin-hadoop2.7
+export USE_AMMONITE_SPARK := 0
 else
 SPARK_RELEASE := spark-2.4.5-bin-without-hadoop
+export USE_AMMONITE_SPARK := 1
 endif
 
 SPARK_VERSION := $(shell awk -v FS=- '{print $$2;}' <<<$(SPARK_RELEASE))
@@ -33,14 +33,14 @@ export SPARK_HOME := $(shell pwd)/$(SPARK_RELEASE)
 .DEFAULT_GOAL: amm
 .PHONY: amm
 amm: bin/amm bin/coursier
-	source ~/.sdkman/bin/sdkman-init.sh                                        \
-	  && USE_AMMONITE_SPARK=1 amm --no-home-predef --predef libs/predefRepl.sc \
+	source ~/.sdkman/bin/sdkman-init.sh                                                            \
+	  && USE_AMMONITE_SPARK=$(USE_AMMONITE_SPARK) amm --no-home-predef --predef libs/predefRepl.sc \
 	# END
 
 FORCE:
 %.sc: FORCE
-	source ~/.sdkman/bin/sdkman-init.sh                   \
-	  && amm  --no-home-predef --predef libs/predef.sc $@ \
+	source ~/.sdkman/bin/sdkman-init.sh                                       \
+	  && USE_AMMONITE_SPARK=0 amm --no-home-predef --predef libs/predef.sc $@ \
 	# END
 
 .PHONY: install-ammonite
