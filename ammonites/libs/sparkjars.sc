@@ -8,6 +8,7 @@ val toPackageName = (jarPath: Path) => jarPath.baseName.split("-").dropRight(1).
 val jarFilter = (jarPath: Path) =>
   jarPath.ext == "jar" && !List("-tests", "-javadoc", "-sources", "jre7", "empty-to-avoid-conflict-with-guava").exists(
     jarPath.baseName.endsWith)
+// val conflictExcludes = Seq("jetty-")
 
 if (sys.env.get("SPARK_HOME").nonEmpty) {
   // ## ${SPARK_HOME}/jars ##
@@ -24,6 +25,8 @@ if (sys.env.get("SPARK_HOME").nonEmpty) {
   val hadoopJarToPath = (jars ++ jarsInPaths).filter(jarFilter).map(p => (toPackageName(p), p)).toMap
 
   // XXX: if jar exists in both, use spark one.
-  val allJars = (hadoopJarToPath ++ sparkJarToPath).values
-  (paths ++ allJars).foreach { interp.load.cp }
+  val allJars = hadoopJarToPath ++ sparkJarToPath
+  // val filteredAllJars = allJars.filterKeys(key => !conflictExcludes.exists(key.startsWith))
+  val filteredAllJars = allJars
+  (paths ++ filteredAllJars.values).foreach { interp.load.cp }
 }

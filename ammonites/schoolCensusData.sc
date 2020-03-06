@@ -1,13 +1,3 @@
-interp.load.module(pwd / RelPath("libs/sparkSession.sc"))
-@
-
-val census = spark.read
-  .format("csv")
-  .option("header", "true")
-  .option("delimiter", ",")
-  .option("inferSchema", "true")
-  .load("1583456966205_DATA.csv")
-
 val toHeightCm: String => Option[Double] = height => {
   val FOOT_CM = 30.48
   val INCH_CM = 2.54
@@ -19,16 +9,28 @@ val toHeightCm: String => Option[Double] = height => {
     case Array(cm) => cm
     case _ => throw new NumberFormatException(height)
   }
-  Some(heightCm)
+
+  Some(heightCm).flatMap(h => if (h < 220.0) Some(h) else None)
 }
-val udfToHeightCm = udf(toHeightCm)
+
+val nullableToHeightCm: String => Option[Double] = height => {
+  height match {
+    case null => None
+    case s: String => toHeightCm(s)
+  }
+}
+
+// -------------------------------------------------------------------
+interp.load.module(pwd / RelPath("libs/sparkSession.sc"))
+@
+val udfToHeightCm = udf(nullableToHeightCm)
 
 val selected: Seq[Column] = Seq(
   col("Region"),
   col("ClassGrade").cast(IntegerType),
   col("Gender"),
   col("Handed"),
-  when(col("Height_cm").isNull, lit(null)).otherwise(round(udfToHeightCm(col("Height_cm")), 1)).alias("Height_cm"),
+  udfToHeightCm(col("Height_cm")).alias("Height_cm"),
   trim(col("Languages_spoken")).cast(IntegerType).alias("Languages_spoken"),
   col("Birth_month"),
   col("Favorite_Season"),
@@ -37,7 +39,16 @@ val selected: Seq[Column] = Seq(
   col("Favorite_Music"),
   col("Superpower"))
 
+val census = spark.read
+  .format("csv")
+  .option("header", "true")
+  .option("delimiter", ",")
+  .option("inferSchema", "true")
+  .load("1583456966205_DATA.csv")
+
 val df = census.select(selected: _*)
 df.show()
 
 df.repartition(1).write.format("parquet").mode("overwrite").save("parquet")
+
+spark.stop()

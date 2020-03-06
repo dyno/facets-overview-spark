@@ -1,6 +1,6 @@
-val sparkSessionModule = sys.env.get("AMMONITE_REPL") match {
-  case None => pwd / RelPath("libs/_SparkSession.sc")
-  case Some(_) => pwd / RelPath("libs/_AmmoniteSparkSession.sc")
+val sparkSessionModule = sys.env.get("USE_AMMONITE_SPARK") match {
+  case Some("1") => pwd / RelPath("libs/_AmmoniteSparkSession.sc")
+  case _ => pwd / RelPath("libs/_SparkSession.sc")
 }
 interp.load.module(sparkSessionModule)
 
@@ -13,9 +13,14 @@ import org.apache.spark.sql.{DataFrame, Dataset, Encoder, Encoders => SparkEncod
 import org.apache.spark.sql.catalyst.encoders.{ExpressionEncoder, RowEncoder}
 
 implicit val spark: SparkSession = {
-  ASparkSession.builder
+  val builder = ASparkSession.builder
     .master("local[*]")
     .config("spark.home", sys.env("SPARK_HOME"))
     .config("spark.logConf", "true")
-    .getOrCreate()
+
+  if (sys.env.get("ENABLE_HIVE").contains("1")) {
+    builder.enableHiveSupport()
+  }
+
+  builder.getOrCreate()
 }

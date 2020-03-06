@@ -1,11 +1,11 @@
 #!/bin/bash
 
-if [[ "$SPARK_RELEASE" =~ spark-2\.4.*-without-hadoop$ ]]; then
-  scala_version=${SCALA_VERSION:-2.11.8}
-  amm_version=${AMMONITE_VERSION:-1.6.7}
-else
+if [[ "$SPARK_RELEASE" =~ scala-2\.12 ]]; then
   scala_version=${SCALA_VERSION:-2.12.8}
   amm_version=${AMMONITE_VERSION:-2.0.1+}
+else
+  scala_version=${SCALA_VERSION:-2.11.8}
+  amm_version=${AMMONITE_VERSION:-1.6.7}
 fi
 
 set -x

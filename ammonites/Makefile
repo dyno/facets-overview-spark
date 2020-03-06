@@ -9,8 +9,16 @@ else
 $(error $(UNAME) is not supported.)
 endif
 
+export USE_AMMONITE_SPARK := 0
+export ENABLE_HIVE := 0
 
+ifeq ($(ENABLE_HIVE),1)
+# XXX: `analyze table` requires hive
+SPARK_RELEASE := spark-2.4.5-bin-hadoop2.7
+else
 SPARK_RELEASE := spark-2.4.5-bin-without-hadoop
+endif
+
 SPARK_VERSION := $(shell awk -v FS=- '{print $$2;}' <<<$(SPARK_RELEASE))
 $(info SPARK_RELEASE=$(SPARK_RELEASE), SPARK_VERSION=$(SPARK_VERSION))
 
@@ -20,13 +28,13 @@ JAVA_VERSION := 8.0.232-amzn
 export PATH := $(shell pwd)/bin:$(PATH)
 # bin/amm use it to tell whether to start spark with scala 2.11 or 2.12
 export SPARK_RELEASE
-
+export SPARK_HOME := $(shell pwd)/$(SPARK_RELEASE)
 
 .DEFAULT_GOAL: amm
 .PHONY: amm
 amm: bin/amm bin/coursier
-	source ~/.sdkman/bin/sdkman-init.sh                                    \
-	  && AMMONITE_REPL=1 amm  --no-home-predef --predef libs/predefRepl.sc \
+	source ~/.sdkman/bin/sdkman-init.sh                                        \
+	  && USE_AMMONITE_SPARK=1 amm --no-home-predef --predef libs/predefRepl.sc \
 	# END
 
 FORCE:
