@@ -13,6 +13,8 @@ class FeatureStatsGeneratorV2 {
   /**
    * Creates a feature statistics proto from a set of spark DataFrames.
    *
+   * proto: message DatasetFeatureStatisticsList
+   *
    * @param namedDataFrames   DataFrame to be analyzed and its name
    * @return The feature statistics proto for the provided tables.
    */
@@ -21,14 +23,53 @@ class FeatureStatsGeneratorV2 {
     DatasetFeatureStatisticsList().addAllDatasets(datasets)
   }
 
-  def toCommonStatistics(colStats: Map[String, String]): CommonStatistics = {
-    val total = colStats(TOTAL).toLong
-    val count = colStats("count").toLong
-    CommonStatistics().withNumMissing(total - count).withNumNonMissing(count)
+  /**
+   * Represent all features statistics in one Dataset
+   *
+   * proto: message DatasetFeatureStatistics
+   */
+  def toDatasetFeatureStatistics(name: String, dataframe: DataFrame): DatasetFeatureStatistics = {
+    // XXX: DataFrame.summary only support NumericType and StringType. collect will discard any type not in recognized here.
+    val selectedCols = dataframe.schema.collect { field =>
+      field.dataType match {
+        case BooleanType                                       => col(field.name).cast(StringType)
+        case IntegerType | DoubleType | FloatType | StringType => col(field.name)
+      }
+    }
+
+    val df = dataframe.select(selectedCols: _*)
+    val summary = df.summary()
+    val numExamples = df.count()
+
+    val features = df.columns.map { colName =>
+      val colStats = summary.select("summary", colName).collect.collect({ case Row(c: String, v: String) => c -> v }).toMap
+      toFeatureNameStatistics(colName, colStats + (TOTAL -> numExamples.toString), df)
+    }
+
+    DatasetFeatureStatistics().withName(name).withNumExamples(numExamples).addAllFeatures(features)
+  }
+
+  /*
+   * proto: message FeatureNameStatistics
+   */
+  def toFeatureNameStatistics(colName: String, colStats: Map[String, String], dataframe: DataFrame): FeatureNameStatistics = {
+    val featureNameStatistics = FeatureNameStatistics().withName(colName)
+
+    dataframe.schema(colName).dataType match {
+      case StringType | IntegerType =>
+        val valType = FeatureNameStatistics.Type.STRING
+        featureNameStatistics.withStringStats(toStringStatistics(colName, colStats, dataframe)).withType(valType)
+
+      case LongType | DoubleType | FloatType =>
+        val valType = FeatureNameStatistics.Type.FLOAT
+        featureNameStatistics.withNumStats(toNumericStatistics(colName, colStats)).withType(valType)
+    }
   }
 
   /**
    * All Numerical Features (LongType, FloatType, DoubleType) will be represented with NumericalStatistics
+   *
+   * proto: message NumericStatistics
    */
   def toNumericStatistics(colName: String, colStats: Map[String, String]): NumericStatistics = {
     var numStats = NumericStatistics().withCommonStats(toCommonStatistics(colStats))
@@ -46,6 +87,8 @@ class FeatureStatsGeneratorV2 {
 
   /**
    * All Categorical Features (Integer, Boolean, String) will be represented with StringStatistics
+   *
+   * proto: message StringStatistics
    */
   def toStringStatistics(colName: String, colStats: Map[String, String], df: DataFrame): StringStatistics = {
     val spark = df.sqlContext.sparkSession
@@ -60,39 +103,12 @@ class FeatureStatsGeneratorV2 {
   }
 
   /**
-   * Represent all features statistics in one Dataset
+   * proto: message CommonStatistics
    */
-  def toDatasetFeatureStatistics(name: String, dataframe: DataFrame): DatasetFeatureStatistics = {
-    // XXX: DataFrame.summary only support NumericType and StringType. collect will discard any type not in recognized here.
-    val selectedCols = dataframe.schema.collect { field =>
-      field.dataType match {
-        case BooleanType                                       => col(field.name).cast(StringType)
-        case IntegerType | DoubleType | FloatType | StringType => col(field.name)
-      }
-    }
-
-    val df = dataframe.select(selectedCols: _*)
-    val summary = df.summary()
-    val numExamples = df.count()
-
-    val toFeatureNameStatistics = (colName: String, colStats: Map[String, String]) => {
-      val featureNameStatistics = FeatureNameStatistics().withName(colName)
-      df.schema(colName).dataType match {
-        case StringType | IntegerType =>
-          val valType = FeatureNameStatistics.Type.STRING
-          featureNameStatistics.withStringStats(toStringStatistics(colName, colStats, df)).withType(valType)
-
-        case LongType | DoubleType | FloatType =>
-          val valType = FeatureNameStatistics.Type.FLOAT
-          featureNameStatistics.withNumStats(toNumericStatistics(colName, colStats)).withType(valType)
-      }
-    }
-
-    val features = df.columns.map { colName =>
-      val colStats = summary.select("summary", colName).collect.collect({ case Row(c: String, v: String) => c -> v }).toMap
-      toFeatureNameStatistics(colName, colStats + (TOTAL -> numExamples.toString))
-    }
-
-    DatasetFeatureStatistics().withName(name).withNumExamples(numExamples).addAllFeatures(features)
+  def toCommonStatistics(colStats: Map[String, String]): CommonStatistics = {
+    val total = colStats(TOTAL).toLong
+    val count = colStats("count").toLong
+    CommonStatistics().withNumMissing(total - count).withNumNonMissing(count)
   }
+
 }
