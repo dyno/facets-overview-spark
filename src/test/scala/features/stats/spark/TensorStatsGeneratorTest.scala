@@ -49,7 +49,7 @@ class TensorStatsGeneratorTest extends StatsGeneratorTestBase {
     //assert(51 === testData.numExamples) google code
 
     val numfeat = if (testData.features.head.fieldId.name.get == "num") testData.features.head else testData.features.tail.head
-    assert("num" === numfeat.fieldId.name)
+    assert("num" === numfeat.fieldId.name.get)
     assert(FeatureNameStatistics.Type.INT === numfeat.`type`)
     assert(0 === numfeat.getNumStats.min)
     assert(49 === numfeat.getNumStats.max)
@@ -269,7 +269,7 @@ class TensorStatsGeneratorTest extends StatsGeneratorTestBase {
     assert("test" === testData.name)
     assert(6 === testData.numExamples)
     val strfeat = testData.features.head
-    assert("str" === strfeat.fieldId.name)
+    assert("str" === strfeat.fieldId.name.get)
     assert(ProtoDataType.STRING === strfeat.`type`)
     assert(3 === strfeat.getStringStats.unique)
     assert(Math.abs(19 / 6.0 - strfeat.getStringStats.avgLength) <= 1e-4)
