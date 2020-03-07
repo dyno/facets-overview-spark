@@ -9,6 +9,7 @@ endif
 
 
 init: pipenv-install
+	git submodule init
 	git submodule update
 
 pipenv-install:

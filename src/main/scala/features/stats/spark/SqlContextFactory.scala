@@ -18,7 +18,7 @@ package features.stats.spark
 import com.typesafe.config.Config
 import config.ConfigUtil
 import org.apache.spark.SparkContext
-import org.apache.spark.sql.{SQLContext, SparkSession}
+import org.apache.spark.sql.{SparkSession, SQLContext}
 
 object SqlContextFactory {
 
@@ -39,7 +39,7 @@ object SqlContextFactory {
     if (lastInstantiatedContext == null) {
       INSTANTIATION_LOCK.synchronized {
         if (lastInstantiatedContext == null) {
-          lastInstantiatedContext = SparkSession.builder().enableHiveSupport().config(sparkContext.getConf).getOrCreate().sqlContext
+          lastInstantiatedContext = SparkSession.builder().config(sparkContext.getConf).getOrCreate().sqlContext
 
           initializeContext(lastInstantiatedContext, config)
         }
@@ -56,12 +56,12 @@ object SqlContextFactory {
    */
   def initializeContext(sqlContext: SQLContext, config: Option[Config] = None): Unit = {
     // Enable dynamic partitioning since partitions are created dynamically in these Spark jobs.
-    sqlContext.setConf("hive.exec.dynamic.partition", "true")
-    sqlContext.setConf("hive.exec.dynamic.partition.mode", "nonstrict")
+    // sqlContext.setConf("hive.exec.dynamic.partition", "true")
+    // sqlContext.setConf("hive.exec.dynamic.partition.mode", "nonstrict")
     // The built in Parquet support in Spark SQL has some caching bugs where newly created partition files are
     // not correctly cached after insertion.  So we will disable the built in support and use the Hive SerDe
     // for the Parquet tables.
-    sqlContext.setConf("spark.sql.hive.convertMetastoreParquet", "false")
+    // sqlContext.setConf("spark.sql.hive.convertMetastoreParquet", "false")
     // Set this to false to avoid seeing the message
     // 'Warning: fs.defaultFs is not set when running "chmod" command.'
     // thousands of times when running locally (e.g. UT execution or mvn build).

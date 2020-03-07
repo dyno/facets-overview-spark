@@ -16,19 +16,19 @@ repositories {
 
 ext {
   scalapbVersion = '0.9.6'
-  sparkVersion = '2.4.4'
+  sparkVersion = '2.4.5'
 }
 
 dependencies {
-    compile 'com.typesafe:config:1.2.1'
+    compile 'com.typesafe:config:1.4.0'
     compile "org.apache.spark:spark-core_%%:${sparkVersion}"
-    compile "org.apache.spark:spark-hive_%%:${sparkVersion}"
+    // compile "org.apache.spark:spark-hive_%%:${sparkVersion}"
     compile "org.apache.spark:spark-sql_%%:${sparkVersion}"
     compile "com.thesamet.scalapb:scalapb-runtime_%%:${scalapbVersion}"
-    compile 'com.thesamet.scalapb:scalapb-json4s_%%:0.10.0'
     compile 'org.tensorflow:spark-tensorflow-connector_%%:1.15.0'
     compile 'org.tensorflow:tensorflow:1.8.0'
 
+    testCompile 'com.thesamet.scalapb:scalapb-json4s_%%:0.10.0', { exclude group: 'com.fasterxml.jackson.core' }
     testCompile 'org.scalatest:scalatest_%%:3.1.1'
     testRuntime 'org.pegdown:pegdown:1.6.0'
     // https://github.com/scalatest/scalatest/issues/1736, Document flexmark dependency for test reports
