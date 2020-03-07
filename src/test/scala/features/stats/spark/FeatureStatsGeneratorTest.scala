@@ -51,11 +51,11 @@ class FeatureStatsGeneratorTest extends StatsGeneratorTestBase {
         (testData.features(1), testData.features.head)
       }
 
-    assert("TestFeatureInt" === numfeat.fieldId.name)
+    assert("TestFeatureInt" === numfeat.fieldId.name.get)
     assert(FeatureNameStatistics.Type.INT === numfeat.`type`)
     assert(1 === numfeat.getNumStats.min)
     assert(3 === numfeat.getNumStats.max)
-    assert("TestFeatureString" === stringfeat.fieldId.name)
+    assert("TestFeatureString" === stringfeat.fieldId.name.get)
     assert(FeatureNameStatistics.Type.STRING === stringfeat.`type`)
     assert(2 === stringfeat.getStringStats.unique)
   }
@@ -96,7 +96,7 @@ class FeatureStatsGeneratorTest extends StatsGeneratorTestBase {
     import spark.implicits._
 
     var arr = Seq[String]("2005-02-25", "2006-02-25")
-    var df = sc.parallelize(arr).toDF("TestFeatureDate").select(to_date($"TestFeatureDate"))
+    var df = sc.parallelize(arr).toDF("TestFeatureDate").select(to_date($"TestFeatureDate").alias("TestFeatureDate"))
     var dataframes = List(NamedDataFrame(name = "testDataSet1", df))
     var dataset: DataEntrySet = generator.toDataEntries(dataframes).head
     assert(dataset.entries.head.`type`.isInt === true)
@@ -195,7 +195,7 @@ class FeatureStatsGeneratorTest extends StatsGeneratorTestBase {
     assert(3 === testData.numExamples)
     assert(1 === testData.features.length)
     val numfeat = testData.features.head
-    assert("testFeature" === numfeat.fieldId.name)
+    assert("testFeature" === numfeat.fieldId.name.get)
     assert(1 === numfeat.getNumStats.min)
 
   }
@@ -217,7 +217,7 @@ class FeatureStatsGeneratorTest extends StatsGeneratorTestBase {
     assert(6 === testData.numExamples)
     assert(1 === testData.features.size)
     val numfeat = testData.features.head
-    assert("TestFeatureString" === numfeat.fieldId.name)
+    assert("TestFeatureString" === numfeat.fieldId.name.get)
     val topValues = numfeat.getStringStats.topValues
 
     assert(3 === topValues.head.frequency)
