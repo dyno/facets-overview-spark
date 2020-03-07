@@ -20,7 +20,6 @@ import org.apache.spark.sql.DataFrame
 
 /**
  * Data Structures needed to generate Feature Stats
- *
  */
 case class NamedDataFrame(name: String, data: DataFrame)
 

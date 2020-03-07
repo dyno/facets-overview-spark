@@ -9,8 +9,7 @@ interp.load.module(sparkSessionModule)
 import org.apache.spark.sql._
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.{DataFrame, Dataset, Encoder, Encoders => SparkEncoders, Row}
-import org.apache.spark.sql.catalyst.encoders.{ExpressionEncoder, RowEncoder}
+import org.apache.spark.sql.catalyst.encoders._
 
 implicit val spark: SparkSession = {
   val builder = ASparkSession.builder

@@ -48,8 +48,8 @@ class TensorStatsGeneratorTest extends StatsGeneratorTestBase {
     assert(50 === testData.numExamples)
     //assert(51 === testData.numExamples) google code
 
-    val numfeat = if (testData.features.head.name == "num") testData.features.head else testData.features.tail.head
-    assert("num" === numfeat.name)
+    val numfeat = if (testData.features.head.fieldId.name.get == "num") testData.features.head else testData.features.tail.head
+    assert("num" === numfeat.fieldId.name)
     assert(FeatureNameStatistics.Type.INT === numfeat.`type`)
     assert(0 === numfeat.getNumStats.min)
     assert(49 === numfeat.getNumStats.max)
@@ -235,11 +235,11 @@ class TensorStatsGeneratorTest extends StatsGeneratorTestBase {
     val testData1 = p.datasets.head
     assert("test1" === testData1.name)
     assert(2 === testData1.numExamples)
-    val numFeatIndex1 = if (testData1.features.head.name == "num") 0 else 1
+    val numFeatIndex1 = if (testData1.features.head.fieldId.name.get == "num") 0 else 1
     assert(0 === testData1.features(numFeatIndex1).getNumStats.max)
 
     val testData2 = p.datasets(1)
-    val numFeatIndex2 = if (testData2.features.head.name == "num") 0 else 1
+    val numFeatIndex2 = if (testData2.features.head.fieldId.name.get == "num") 0 else 1
     assert("test2" === testData2.name)
     assert(1 === testData2.numExamples)
     assert(1 === testData2.features(numFeatIndex2).getNumStats.max)
@@ -263,14 +263,13 @@ class TensorStatsGeneratorTest extends StatsGeneratorTestBase {
     val dataframes = List(NamedDataFrame(name = "test", datadf1))
     val p = generator.protoFromDataFrames(dataframes)
 
-    println(toJson(p))
     val testData = p.datasets.head
 
     assert(1 === p.datasets.length)
     assert("test" === testData.name)
     assert(6 === testData.numExamples)
     val strfeat = testData.features.head
-    assert("str" === strfeat.name)
+    assert("str" === strfeat.fieldId.name)
     assert(ProtoDataType.STRING === strfeat.`type`)
     assert(3 === strfeat.getStringStats.unique)
     assert(Math.abs(19 / 6.0 - strfeat.getStringStats.avgLength) <= 1e-4)
@@ -340,8 +339,6 @@ class TensorStatsGeneratorTest extends StatsGeneratorTestBase {
     val dataframes = List(NamedDataFrame(name = "test", datadf1))
     val p = generator.protoFromDataFrames(dataframes)
 
-    println("json=" + toJson(p))
-
     assert(p.datasets.head.numExamples == 50)
     val numfeat = p.datasets.head.features.head
     val numfeatStats = numfeat.getNumStats
@@ -363,7 +360,6 @@ class TensorStatsGeneratorTest extends StatsGeneratorTestBase {
     val datadf1 = spark.sparkContext.parallelize(data).toDF(features: _*)
     val dataframes = List(NamedDataFrame(name = "test", datadf1))
     val p = generator.protoFromDataFrames(dataframes)
-    println("json=" + toJson(p))
 
     assert(p.datasets.head.numExamples == 1)
     val numfeat = p.datasets.head.features.head
@@ -382,7 +378,6 @@ class TensorStatsGeneratorTest extends StatsGeneratorTestBase {
 
     val dataframes = List(NamedDataFrame(name = "test", datadf1))
     val p = generator.protoFromDataFrames(dataframes)
-    println("json=" + toJson(p))
 
     assert(p.datasets.head.numExamples == 2)
     val numfeat = p.datasets.head.features.head
@@ -442,9 +437,6 @@ class TensorStatsGeneratorTest extends StatsGeneratorTestBase {
     //generate datastats
     val dataframes = List(NamedDataFrame(name = "data", dataDF))
     val p = generator.protoFromDataFrames(dataframes)
-
-    println("json=" + toJson(p))
-
   }
 
 }

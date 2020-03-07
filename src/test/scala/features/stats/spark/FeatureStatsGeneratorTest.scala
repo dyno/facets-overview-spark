@@ -16,11 +16,11 @@
 
 package features.stats.spark
 
-import java.time.temporal.ChronoUnit
-
 import featureStatistics.feature_statistics.FeatureNameStatistics
 import featureStatistics.feature_statistics.Histogram.HistogramType.QUANTILES
 import org.apache.spark.sql.DataFrame
+
+import java.time.temporal.ChronoUnit
 
 class FeatureStatsGeneratorTest extends StatsGeneratorTestBase {
 
@@ -45,30 +45,19 @@ class FeatureStatsGeneratorTest extends StatsGeneratorTestBase {
     assert(2 === testData.features.length)
 
     val (numfeat, stringfeat) =
-      if (testData.features.head.name == "TestFeatureInt") {
+      if (testData.features.head.fieldId.name.get == "TestFeatureInt") {
         (testData.features.head, testData.features(1))
       } else {
         (testData.features(1), testData.features.head)
       }
 
-    println(s"numfeat = ${numfeat.name}")
-    println(s"numtype = ${numfeat.`type`}")
-    println(s"stringfeat = ${stringfeat.name}")
-    println(s"strtype = ${stringfeat.`type`}")
-
-    assert("TestFeatureInt" === numfeat.name)
+    assert("TestFeatureInt" === numfeat.fieldId.name)
     assert(FeatureNameStatistics.Type.INT === numfeat.`type`)
     assert(1 === numfeat.getNumStats.min)
     assert(3 === numfeat.getNumStats.max)
-    assert("TestFeatureString" === stringfeat.name)
+    assert("TestFeatureString" === stringfeat.fieldId.name)
     assert(FeatureNameStatistics.Type.STRING === stringfeat.`type`)
     assert(2 === stringfeat.getStringStats.unique)
-
-    //  println(proto.toString)
-    //  persistProto(proto)
-    val r = toJson(proto)
-    //  println(r)
-
   }
 
   test("testGenEntry") {
@@ -204,10 +193,9 @@ class FeatureStatsGeneratorTest extends StatsGeneratorTestBase {
 
     assert("testDataset" === testData.name)
     assert(3 === testData.numExamples)
-    testData.features.foreach(f => println("feauture name = " + f.name))
     assert(1 === testData.features.length)
     val numfeat = testData.features.head
-    assert("testFeature" === numfeat.name)
+    assert("testFeature" === numfeat.fieldId.name)
     assert(1 === numfeat.getNumStats.min)
 
   }
@@ -229,7 +217,7 @@ class FeatureStatsGeneratorTest extends StatsGeneratorTestBase {
     assert(6 === testData.numExamples)
     assert(1 === testData.features.size)
     val numfeat = testData.features.head
-    assert("TestFeatureString" === numfeat.name)
+    assert("TestFeatureString" === numfeat.fieldId.name)
     val topValues = numfeat.getStringStats.topValues
 
     assert(3 === topValues.head.frequency)
@@ -247,7 +235,6 @@ class FeatureStatsGeneratorTest extends StatsGeneratorTestBase {
     assert(3 === buckets.head.sampleCount)
     assert("a" === buckets(1).label)
     assert(2 === buckets(1).sampleCount)
-
   }
 
 }
