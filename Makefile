@@ -29,7 +29,3 @@ jupyter: install-ipykernel install-nbextension
 	  --NotebookApp.allow_origin="*"               \
 	  --NotebookApp.iopub_data_rate_limit=10000000 \
 	# END
-
-genrate_demo_stats:
-	# TODO:
-
