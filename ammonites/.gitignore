@@ -1,4 +1,5 @@
-spark-*
-parquet
-metastore_db
 census_stats.txt
+hadoop-*
+metastore_db
+parquet
+spark-*

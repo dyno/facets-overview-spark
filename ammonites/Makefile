@@ -10,37 +10,53 @@ $(error $(UNAME) is not supported.)
 endif
 
 export ENABLE_HIVE := 0
+export SPARK_SCALA_212 := 0
+
 ifeq ($(ENABLE_HIVE),1)
-# XXX: `analyze table` requires hive
 SPARK_RELEASE := spark-2.4.5-bin-hadoop2.7
 export USE_AMMONITE_SPARK := 0
+else ifeq ($(SPARK_SCALA_212),1)
+SPARK_RELEASE := spark-2.4.5-bin-without-hadoop-scala-2.12
+export USE_AMMONITE_SPARK := 1
 else
 SPARK_RELEASE := spark-2.4.5-bin-without-hadoop
 export USE_AMMONITE_SPARK := 1
 endif
-
 SPARK_VERSION := $(shell awk -v FS=- '{print $$2;}' <<<$(SPARK_RELEASE))
-$(info SPARK_RELEASE=$(SPARK_RELEASE), SPARK_VERSION=$(SPARK_VERSION))
+
+HADOOP_RELEASE := hadoop-3.2.1
+export HADOOP_RELEASE
 
 # https://api.sdkman.io/2/candidates/java/Darwin/versions/list?installed=
 JAVA_VERSION := 8.0.232-amzn
 
-export PATH := $(shell pwd)/bin:$(PATH)
-# bin/amm use it to tell whether to start spark with scala 2.11 or 2.12
+# bin/amm use SPARK_RELEASE to tell whether to start spark with scala 2.11 or 2.12
 export SPARK_RELEASE
 export SPARK_HOME := $(shell pwd)/$(SPARK_RELEASE)
+export HADOOP_HOME := $(shell pwd)/$(HADOOP_RELEASE)
+
+export PATH := $(shell pwd)/bin:$(SPARK_HOME)/bin:$(HADOOP_HOME)/bin:$(PATH)
+export SPARK_DIST_CLASSPATH := $(shell $(HADOOP_HOME)/bin/hadoop classpath 2>/dev/null)
+
+$(info SPARK_RELEASE=$(SPARK_RELEASE), SPARK_VERSION=$(SPARK_VERSION))
+$(info HADOOP_RELEASE=$(HADOOP_RELEASE), SPARK_DIST_CLASSPATH=$(SPARK_DIST_CLASSPATH))
 
 .DEFAULT_GOAL: amm
 .PHONY: amm
 amm: bin/amm bin/coursier
-	source ~/.sdkman/bin/sdkman-init.sh                                                            \
-	  && USE_AMMONITE_SPARK=$(USE_AMMONITE_SPARK) amm --no-home-predef --predef libs/predefRepl.sc \
+	# XXX: cache will make load.module behave differently.
+	rm -rf ~/.ammonite/cache
+	source ~/.sdkman/bin/sdkman-init.sh                \
+	  && USE_AMMONITE_SPARK=$(USE_AMMONITE_SPARK) amm  \
+	      --no-home-predef --predef libs/predefRepl.sc \
 	# END
 
 FORCE:
 %.sc: FORCE
-	source ~/.sdkman/bin/sdkman-init.sh                                       \
-	  && USE_AMMONITE_SPARK=0 amm --no-home-predef --predef libs/predef.sc $@ \
+	source ~/.sdkman/bin/sdkman-init.sh  \
+	  && USE_AMMONITE_SPARK=0 amm        \
+	    --no-home-predef                 \
+	    --predef libs/predefShared.sc $@ \
 	# END
 
 .PHONY: install-ammonite
@@ -78,9 +94,14 @@ $(SPARK_RELEASE):
 	  && tar xvf $(SPARK_RELEASE).tgz                                                            \
 	# END
 
+$(HADOOP_RELEASE):
+	curl -LO http://mirror.cc.columbia.edu/pub/software/apache/hadoop/common/$(HADOOP_RELEASE)/$(HADOOP_RELEASE).tar.gz \
+	  && tar xvf $(HADOOP_RELEASE).tar.gz                                                                               \
+	# END
+
 # 1583456966205_DATA.csv is from https://ww2.amstat.org/censusatschool/RandomSampleForm.cfm
 parquet/_SUCCESS: 1583456966205_DATA.csv
 	$(MAKE) schoolCensusData.sc
 
 .PHONY: data
-data:parquet/_SUCCESS
+data: $(HADOOP_RELEASE) $(SPARK_RELEASE) parquet/_SUCCESS

@@ -8,7 +8,6 @@ val toPackageName = (jarPath: Path) => jarPath.baseName.split("-").dropRight(1).
 val jarFilter = (jarPath: Path) =>
   jarPath.ext == "jar" && !List("-tests", "-javadoc", "-sources", "jre7", "empty-to-avoid-conflict-with-guava").exists(
     jarPath.baseName.endsWith)
-// val conflictExcludes = Seq("jetty-")
 
 if (sys.env.get("SPARK_HOME").nonEmpty) {
   // ## ${SPARK_HOME}/jars ##
@@ -18,7 +17,7 @@ if (sys.env.get("SPARK_HOME").nonEmpty) {
   // ## ${SPARK_DIST_CLASSPATH} ##
   // inside docker, SPARK_DIST_CLASSPATH is not set.
   val distClasspath = sys.env.get("SPARK_DIST_CLASSPATH").getOrElse(os.proc("hadoop", "classpath").call().out.trim)
-  val libs = distClasspath.split(":")
+  val libs = distClasspath.split(":").filter(_ != "")
   val jars = libs.filter(_.endsWith("jar")).map(Path(_))
   val paths = libs.filter(!_.endsWith("jar")).map(_.replace("*", "")).map(Path(_)).toSet
   val jarsInPaths = paths.map(p => ls ! p |? { _.ext == "jar" }).flatMap(identity)
@@ -26,7 +25,8 @@ if (sys.env.get("SPARK_HOME").nonEmpty) {
 
   // XXX: if jar exists in both, use spark one.
   val allJars = hadoopJarToPath ++ sparkJarToPath
-  // val filteredAllJars = allJars.filterKeys(key => !conflictExcludes.exists(key.startsWith))
-  val filteredAllJars = allJars
+  val conflictExcludes = Seq("jetty-")
+  val filteredAllJars = allJars.filterKeys(key => !conflictExcludes.exists(key.startsWith))
+  // val filteredAllJars = allJars
   (paths ++ filteredAllJars.values).foreach { interp.load.cp }
 }
